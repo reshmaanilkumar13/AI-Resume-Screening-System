@@ -12,6 +12,10 @@ An AI-powered Resume Screening System that ranks multiple resumes against a job 
 - Automatic Shortlisting
 - CSV Export
 - Streamlit Web Interface
+- Multi-file Resume Upload
+- Real-time Ranking
+- Score Progress Visualization
+- Candidate Comparison Chart
 
 ## 🧠 Scoring Logic
 
