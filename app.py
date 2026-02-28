@@ -1,9 +1,9 @@
 import os
-import csv
 from resume_parser import extract_resume_text
 from utils import clean_text
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
+import tempfile
 
 model = SentenceTransformer('all-MiniLM-L6-v2')
 
@@ -15,57 +15,57 @@ required_skills = [
 
 SHORTLIST_THRESHOLD = 50
 
-def process_resumes(resume_folder, job_description_text):
+def process_uploaded_resumes(uploaded_files, job_description_text):
 
     cleaned_job = clean_text(job_description_text)
     job_embedding = model.encode(cleaned_job)
 
     results = []
 
-    for filename in os.listdir(resume_folder):
-        if filename.endswith(".pdf"):
-            file_path = os.path.join(resume_folder, filename)
+    for uploaded_file in uploaded_files:
 
-            text = extract_resume_text(file_path)
-            cleaned_resume = clean_text(text)
+        # Save temporarily
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+            tmp_file.write(uploaded_file.read())
+            temp_path = tmp_file.name
 
-            # Semantic similarity
-            resume_embedding = model.encode(cleaned_resume)
-            similarity = cosine_similarity(
-                [resume_embedding],
-                [job_embedding]
-            )[0][0]
+        text = extract_resume_text(temp_path)
+        cleaned_resume = clean_text(text)
 
-            semantic_score = round(similarity * 100, 2)
+        resume_embedding = model.encode(cleaned_resume)
 
-            # Skill matching
-            matched_skills = [
-                skill for skill in required_skills
-                if skill in cleaned_resume
-            ]
+        similarity = cosine_similarity(
+            [resume_embedding],
+            [job_embedding]
+        )[0][0]
 
-            skill_score = (len(matched_skills) / len(required_skills)) * 100
+        semantic_score = round(similarity * 100, 2)
 
-            # Experience bonus
-            experience_bonus = 0
-            if "internship" in cleaned_resume:
-                experience_bonus += 5
-            if "project" in cleaned_resume:
-                experience_bonus += 5
-            if "experience" in cleaned_resume:
-                experience_bonus += 5
+        matched_skills = [
+            skill for skill in required_skills
+            if skill in cleaned_resume
+        ]
 
-            # Final score
-            final_score = round(
-                (0.6 * semantic_score) +
-                (0.3 * skill_score) +
-                (0.1 * experience_bonus),
-                2
-            )
+        skill_score = (len(matched_skills) / len(required_skills)) * 100
 
-            status = "Shortlisted" if final_score >= SHORTLIST_THRESHOLD else "Rejected"
+        experience_bonus = 0
+        if "internship" in cleaned_resume:
+            experience_bonus += 5
+        if "project" in cleaned_resume:
+            experience_bonus += 5
+        if "experience" in cleaned_resume:
+            experience_bonus += 5
 
-            results.append((filename, final_score, matched_skills, status))
+        final_score = round(
+            (0.6 * semantic_score) +
+            (0.3 * skill_score) +
+            (0.1 * experience_bonus),
+            2
+        )
+
+        status = "Shortlisted" if final_score >= SHORTLIST_THRESHOLD else "Rejected"
+
+        results.append((uploaded_file.name, final_score, matched_skills, status))
 
     results.sort(key=lambda x: x[1], reverse=True)
 
