@@ -1,0 +1,9 @@
+We are hiring a Python Developer with knowledge of:
+Python programming
+Machine Learning basics
+Scikit-learn
+NumPy
+Pandas
+MySQL
+Git and GitHub
+Web development using HTML, CSS, JavaScript
